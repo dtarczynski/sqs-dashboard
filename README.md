@@ -93,8 +93,9 @@ Hidden messages are particularly useful for monitoring processing queues where m
 - Real-time statistics cards showing totals for visible queues (respects filters)
 - Region selector dropdown in header with persistence across sessions
 - Empty queue filter toggle with persistence across sessions
+- Auto-refresh toggle with persistence across sessions
 - Connection status indicator (green = connected, red = disconnected) with current region display
-- Auto-refresh every 5 seconds
+- Auto-refresh every 5 seconds (when enabled)
 
 ### Queue Cards
 Each queue displays:
@@ -162,6 +163,26 @@ Each queue displays:
 - Both filters work together seamlessly
 - Search + empty filter shows only non-empty queues matching search term
 - Statistics cards reflect the currently visible queues after all filters
+
+### Auto-Refresh Control
+**Auto-Refresh Toggle:**
+- Toggle switch in header to enable/disable automatic data refreshing
+- When enabled, refreshes queue data every 5 seconds
+- When disabled, data only updates on manual refresh or user actions
+- Subtle "Auto-refreshing..." indicator appears briefly during background updates
+- Preference persists across application sessions
+- Enabled by default for real-time monitoring
+
+**Manual Refresh:**
+- Refresh button always available regardless of auto-refresh setting
+- Shows full loading overlay for user feedback
+- Immediately updates all queue data and statistics
+
+**Benefits:**
+- **Battery Saving**: Disable auto-refresh on laptops to save battery
+- **Controlled Updates**: Stop automatic refreshing during maintenance or testing
+- **Reduced Network**: Minimize API calls when continuous monitoring isn't needed
+- **Focus Mode**: Prevent distracting updates during detailed queue analysis
 
 ## Configuration
 

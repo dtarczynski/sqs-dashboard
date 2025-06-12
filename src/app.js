@@ -5,6 +5,7 @@ class SQSDashboard {
         this.refreshInterval = null;
         this.refreshIntervalTime = 5000; // 5 seconds
         this.hideEmptyQueues = false; // Track hide empty queues state
+        this.autoRefreshEnabled = true; // Track auto-refresh state
         
         this.initializeElements();
         this.bindEvents();
@@ -27,6 +28,7 @@ class SQSDashboard {
             regionSelect: document.getElementById('regionSelect'),
             hideEmptyQueues: document.getElementById('hideEmptyQueues'),
             refreshIndicator: document.getElementById('refreshIndicator'),
+            autoRefreshToggle: document.getElementById('autoRefreshToggle'),
             
             // Stats
             totalQueues: document.getElementById('totalQueues'),
@@ -41,6 +43,7 @@ class SQSDashboard {
         this.elements.searchInput.addEventListener('input', (e) => this.filterQueues(e.target.value));
         this.elements.regionSelect.addEventListener('change', (e) => this.changeRegion(e.target.value));
         this.elements.hideEmptyQueues.addEventListener('change', (e) => this.toggleEmptyQueues(e.target.checked));
+        this.elements.autoRefreshToggle.addEventListener('change', (e) => this.toggleAutoRefresh(e.target.checked));
         
         // Error modal events
         this.elements.errorModalClose.addEventListener('click', () => this.hideErrorModal());
@@ -55,9 +58,12 @@ class SQSDashboard {
     async initialize() {
         await this.loadPersistedRegion();
         this.loadPersistedEmptyQueueFilter();
+        this.loadPersistedAutoRefreshSetting();
         await this.checkConnection();
         await this.loadQueues();
-        this.startAutoRefresh();
+        if (this.autoRefreshEnabled) {
+            this.startAutoRefresh();
+        }
     }
 
     async checkConnection() {
@@ -80,8 +86,8 @@ class SQSDashboard {
     async loadQueues(showLoadingIndicator = true) {
         if (showLoadingIndicator) {
             this.showLoading();
-        } else {
-            // Show subtle refresh indicator for auto-refresh
+        } else if (this.autoRefreshEnabled) {
+            // Show subtle refresh indicator for auto-refresh (only if auto-refresh is enabled)
             this.elements.refreshIndicator.classList.add('active');
         }
         
@@ -95,8 +101,8 @@ class SQSDashboard {
         } finally {
             if (showLoadingIndicator) {
                 this.hideLoading();
-            } else {
-                // Hide refresh indicator after a brief delay
+            } else if (this.autoRefreshEnabled) {
+                // Hide refresh indicator after a brief delay (only if auto-refresh is enabled)
                 setTimeout(() => {
                     this.elements.refreshIndicator.classList.remove('active');
                 }, 1000);
@@ -471,6 +477,10 @@ class SQSDashboard {
     }
 
     startAutoRefresh() {
+        if (!this.autoRefreshEnabled) {
+            return; // Don't start if auto-refresh is disabled
+        }
+        
         this.refreshInterval = setInterval(() => {
             this.loadQueues(false); // Don't show loading indicator for auto-refresh
         }, this.refreshIntervalTime);
@@ -480,6 +490,36 @@ class SQSDashboard {
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
             this.refreshInterval = null;
+        }
+    }
+
+    loadPersistedAutoRefreshSetting() {
+        try {
+            const savedSetting = localStorage.getItem('sqs-dashboard-auto-refresh');
+            if (savedSetting !== null) {
+                this.autoRefreshEnabled = savedSetting === 'true';
+                this.elements.autoRefreshToggle.checked = this.autoRefreshEnabled;
+            }
+        } catch (error) {
+            console.error('Failed to load persisted auto-refresh setting:', error);
+        }
+    }
+
+    toggleAutoRefresh(enabled) {
+        this.autoRefreshEnabled = enabled;
+        
+        // Persist the preference
+        try {
+            localStorage.setItem('sqs-dashboard-auto-refresh', enabled.toString());
+        } catch (error) {
+            console.error('Failed to persist auto-refresh setting:', error);
+        }
+        
+        // Start or stop auto-refresh based on the setting
+        if (enabled) {
+            this.startAutoRefresh();
+        } else {
+            this.stopAutoRefresh();
         }
     }
 
