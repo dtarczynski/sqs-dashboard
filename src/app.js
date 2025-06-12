@@ -26,6 +26,7 @@ class SQSDashboard {
             errorModalOk: document.getElementById('errorModalOk'),
             regionSelect: document.getElementById('regionSelect'),
             hideEmptyQueues: document.getElementById('hideEmptyQueues'),
+            refreshIndicator: document.getElementById('refreshIndicator'),
             
             // Stats
             totalQueues: document.getElementById('totalQueues'),
@@ -76,8 +77,13 @@ class SQSDashboard {
             `Disconnected${error ? `: ${error}` : ''}`;
     }
 
-    async loadQueues() {
-        this.showLoading();
+    async loadQueues(showLoadingIndicator = true) {
+        if (showLoadingIndicator) {
+            this.showLoading();
+        } else {
+            // Show subtle refresh indicator for auto-refresh
+            this.elements.refreshIndicator.classList.add('active');
+        }
         
         try {
             this.queues = await window.electronAPI.getQueues();
@@ -87,7 +93,14 @@ class SQSDashboard {
         } catch (error) {
             this.showError('Failed to load queues', error.message);
         } finally {
-            this.hideLoading();
+            if (showLoadingIndicator) {
+                this.hideLoading();
+            } else {
+                // Hide refresh indicator after a brief delay
+                setTimeout(() => {
+                    this.elements.refreshIndicator.classList.remove('active');
+                }, 1000);
+            }
         }
     }
 
@@ -127,8 +140,45 @@ class SQSDashboard {
             return;
         }
 
-        this.elements.queueGrid.innerHTML = this.filteredQueues.map(queue => this.renderQueueCard(queue)).join('');
-        this.bindQueueEvents();
+        this.updateQueueGrid();
+    }
+
+    updateQueueGrid() {
+        // Remove any existing empty state since we have queues to show
+        const existingEmptyState = this.elements.queueGrid.querySelector('.empty-state');
+        if (existingEmptyState) {
+            existingEmptyState.remove();
+        }
+
+        const existingCards = Array.from(this.elements.queueGrid.querySelectorAll('.queue-card'));
+        const existingUrls = new Set(existingCards.map(card => card.dataset.queueUrl));
+        const filteredUrls = new Set(this.filteredQueues.map(queue => queue.url));
+
+        // Remove cards that are no longer in filtered results
+        existingCards.forEach(card => {
+            if (!filteredUrls.has(card.dataset.queueUrl)) {
+                card.remove();
+            }
+        });
+
+        // Update or add cards for filtered queues
+        this.filteredQueues.forEach((queue, index) => {
+            const existingCard = this.elements.queueGrid.querySelector(`[data-queue-url="${queue.url}"]`);
+            
+            if (existingCard) {
+                // Update existing card content without full re-render
+                this.updateQueueCard(existingCard, queue);
+            } else {
+                // Create new card
+                const newCard = document.createElement('div');
+                newCard.innerHTML = this.renderQueueCard(queue);
+                const cardElement = newCard.firstElementChild;
+                this.elements.queueGrid.appendChild(cardElement);
+                
+                // Bind events only for this new card
+                this.bindEventsForCard(cardElement);
+            }
+        });
     }
 
     renderQueueCard(queue) {
@@ -199,22 +249,80 @@ class SQSDashboard {
         `;
     }
 
+    updateQueueCard(cardElement, queue) {
+        const attributes = queue.attributes || {};
+        const visibleMessages = parseInt(attributes.ApproximateNumberOfMessages || 0);
+        const hiddenMessages = parseInt(attributes.ApproximateNumberOfMessagesNotVisible || 0);
+        const delayedMessages = parseInt(attributes.ApproximateNumberOfMessagesDelayed || 0);
+        const totalMessages = visibleMessages + hiddenMessages + delayedMessages;
+        
+        // Update metric values
+        const metrics = cardElement.querySelectorAll('.metric-value');
+        if (metrics.length >= 4) {
+            metrics[0].textContent = visibleMessages;  // Visible
+            metrics[1].textContent = hiddenMessages;   // Hidden
+            metrics[2].textContent = delayedMessages;  // Delayed
+            metrics[3].textContent = totalMessages;    // Total
+        }
+        
+        // Update purge button state
+        const purgeBtn = cardElement.querySelector('.purge-btn');
+        if (purgeBtn) {
+            if (totalMessages === 0) {
+                purgeBtn.disabled = true;
+            } else {
+                purgeBtn.disabled = false;
+            }
+        }
+        
+        // Update timestamp
+        const metaDiv = cardElement.querySelector('.queue-meta div:last-child');
+        if (metaDiv) {
+            metaDiv.textContent = `Last updated: ${new Date(queue.lastUpdated).toLocaleTimeString()}`;
+        }
+        
+        // Update error state if needed
+        const existingError = cardElement.querySelector('.queue-error');
+        if (queue.error && !existingError) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'queue-error';
+            errorDiv.innerHTML = `<strong>Error:</strong> ${queue.error}`;
+            cardElement.appendChild(errorDiv);
+        } else if (!queue.error && existingError) {
+            existingError.remove();
+        } else if (queue.error && existingError) {
+            existingError.innerHTML = `<strong>Error:</strong> ${queue.error}`;
+        }
+    }
+
     bindQueueEvents() {
-        document.querySelectorAll('.purge-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+        // This method is now only used for initial full renders (like empty state -> queues)
+        document.querySelectorAll('.queue-card').forEach(card => {
+            this.bindEventsForCard(card);
+        });
+    }
+
+    bindEventsForCard(cardElement) {
+        const purgeBtn = cardElement.querySelector('.purge-btn');
+        const deleteBtn = cardElement.querySelector('.delete-btn');
+        
+        if (purgeBtn && !purgeBtn.hasAttribute('data-events-bound')) {
+            purgeBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const queueUrl = btn.dataset.queueUrl;
+                const queueUrl = purgeBtn.dataset.queueUrl;
                 await this.purgeQueue(queueUrl);
             });
-        });
+            purgeBtn.setAttribute('data-events-bound', 'true');
+        }
 
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+        if (deleteBtn && !deleteBtn.hasAttribute('data-events-bound')) {
+            deleteBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const queueUrl = btn.dataset.queueUrl;
+                const queueUrl = deleteBtn.dataset.queueUrl;
                 await this.deleteQueue(queueUrl);
             });
-        });
+            deleteBtn.setAttribute('data-events-bound', 'true');
+        }
     }
 
     async purgeQueue(queueUrl) {
@@ -364,7 +472,7 @@ class SQSDashboard {
 
     startAutoRefresh() {
         this.refreshInterval = setInterval(() => {
-            this.loadQueues();
+            this.loadQueues(false); // Don't show loading indicator for auto-refresh
         }, this.refreshIntervalTime);
     }
 

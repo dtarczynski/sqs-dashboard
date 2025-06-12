@@ -136,6 +136,41 @@ body {
     color: white;
 }
 
+/* Refresh Indicator */
+.refresh-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.refresh-indicator.active {
+    opacity: 1;
+}
+
+.refresh-dot {
+    width: 6px;
+    height: 6px;
+    background: #48bb78;
+    border-radius: 50%;
+    animation: pulse-refresh 1.5s infinite;
+}
+
+@keyframes pulse-refresh {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+.refresh-text {
+    font-weight: 500;
+}
+
 /* Buttons */
 .btn {
     padding: 10px 20px;
@@ -236,6 +271,7 @@ body {
     font-weight: 700;
     color: #2d3748;
     line-height: 1;
+    transition: color 0.3s ease;
 }
 
 .stat-label {
@@ -411,6 +447,7 @@ body {
     font-weight: 700;
     color: #2d3748;
     line-height: 1;
+    transition: color 0.3s ease;
 }
 
 .metric-label {
