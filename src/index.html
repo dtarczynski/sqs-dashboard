@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQS Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1 class="app-title">
+                        <span class="icon">📊</span>
+                        SQS Dashboard
+                    </h1>
+                    <div class="connection-status" id="connectionStatus">
+                        <div class="status-indicator offline" id="statusIndicator"></div>
+                        <span id="statusText">Checking connection...</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="region-selector">
+                        <label for="regionSelect" class="region-label">Region:</label>
+                        <select id="regionSelect" class="region-select">
+                            <option value="us-east-1">US East (N. Virginia)</option>
+                            <option value="us-east-2">US East (Ohio)</option>
+                            <option value="us-west-1">US West (N. California)</option>
+                            <option value="us-west-2" selected>US West (Oregon)</option>
+                            <option value="eu-west-1">Europe (Ireland)</option>
+                            <option value="eu-west-2">Europe (London)</option>
+                            <option value="eu-west-3">Europe (Paris)</option>
+                            <option value="eu-central-1">Europe (Frankfurt)</option>
+                            <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+                            <option value="ap-southeast-2">Asia Pacific (Sydney)</option>
+                            <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
+                            <option value="ca-central-1">Canada (Central)</option>
+                        </select>
+                    </div>
+                    <button id="refreshBtn" class="btn btn-primary">
+                        <span class="btn-icon">🔄</span>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <!-- Statistics Overview -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="totalQueues">-</div>
+                            <div class="stat-label">Total Queues</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📨</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="totalMessages">-</div>
+                            <div class="stat-label">Total Messages</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👁️‍🗨️</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="hiddenMessages">-</div>
+                            <div class="stat-label">Hidden Messages</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="delayedMessages">-</div>
+                            <div class="stat-label">Delayed Messages</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queue List -->
+                <div class="queue-section">
+                    <div class="section-header">
+                        <h2>Queue Details</h2>
+                        <div class="section-controls">
+                            <div class="filter-toggle">
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="hideEmptyQueues" class="toggle-checkbox">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Hide empty queues</span>
+                                </label>
+                            </div>
+                            <div class="search-box">
+                                <input type="text" id="searchInput" placeholder="Search queues..." class="search-input">
+                                <span class="search-icon">🔍</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="queue-grid" id="queueGrid">
+                        <!-- Queue cards will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading queues...</div>
+        </div>
+
+        <!-- Error Modal -->
+        <div class="modal-overlay" id="errorModal" style="display: none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Error</h3>
+                    <button class="modal-close" id="errorModalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="errorMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="errorModalOk">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
