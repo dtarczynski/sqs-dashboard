@@ -12,7 +12,7 @@
     "build:linux": "electron-builder --linux"
   },
   "keywords": ["electron", "sqs", "localstack", "dashboard"],
-  "author": "Your Name",
+  "author": "Dariusz Tarczynski",
   "license": "MIT",
   "devDependencies": {
     "electron": "^28.0.0",

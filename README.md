@@ -1,6 +1,6 @@
 # SQS Dashboard for LocalStack
 
-A beautiful Electron desktop application for monitoring AWS SQS queues in LocalStack. Features a premium UI with real-time updates and queue management capabilities.
+![Dashboard Screenshot](assets/screen.png)
 
 ## Features
 
