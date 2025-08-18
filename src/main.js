@@ -203,3 +203,68 @@ ipcMain.handle('change-region', async (event, newRegion) => {
 ipcMain.handle('get-current-region', async () => {
   return { region: currentRegion };
 });
+
+ipcMain.handle('purge-all-queues', async () => {
+  try {
+    // First, get all queues
+    const listCommand = new ListQueuesCommand({});
+    const response = await sqsClient.send(listCommand);
+    
+    if (!response.QueueUrls || response.QueueUrls.length === 0) {
+      return { success: false, message: 'No queues found to purge' };
+    }
+
+    // Show confirmation dialog
+    const result = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      buttons: ['Cancel', 'Purge All Queues'],
+      defaultId: 0,
+      cancelId: 0,
+      title: 'Confirm Purge All Queues',
+      message: `Are you sure you want to purge all messages from all ${response.QueueUrls.length} queues?`,
+      detail: 'This action cannot be undone. All messages in all queues will be permanently deleted.'
+    });
+
+    if (result.response === 1) {
+      let purgedCount = 0;
+      let failedCount = 0;
+      const errors = [];
+
+      // Purge each queue
+      for (const queueUrl of response.QueueUrls) {
+        try {
+          const purgeCommand = new PurgeQueueCommand({
+            QueueUrl: queueUrl
+          });
+          await sqsClient.send(purgeCommand);
+          purgedCount++;
+        } catch (error) {
+          failedCount++;
+          const queueName = queueUrl.split('/').pop();
+          errors.push(`${queueName}: ${error.message}`);
+        }
+      }
+
+      if (failedCount === 0) {
+        return { success: true, message: `Successfully purged all ${purgedCount} queues` };
+      } else if (purgedCount > 0) {
+        return { 
+          success: true, 
+          message: `Purged ${purgedCount} queues successfully. ${failedCount} failed.`,
+          errors: errors
+        };
+      } else {
+        return { 
+          success: false, 
+          message: `Failed to purge all queues.`,
+          errors: errors
+        };
+      }
+    }
+    
+    return { success: false, message: 'Purge cancelled' };
+  } catch (error) {
+    console.error('Error purging all queues:', error);
+    return { success: false, message: error.message };
+  }
+});

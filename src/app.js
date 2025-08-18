@@ -29,6 +29,7 @@ class SQSDashboard {
             hideEmptyQueues: document.getElementById('hideEmptyQueues'),
             refreshIndicator: document.getElementById('refreshIndicator'),
             autoRefreshToggle: document.getElementById('autoRefreshToggle'),
+            purgeAllBtn: document.getElementById('purgeAllBtn'),
             
             // Stats
             totalQueues: document.getElementById('totalQueues'),
@@ -44,6 +45,7 @@ class SQSDashboard {
         this.elements.regionSelect.addEventListener('change', (e) => this.changeRegion(e.target.value));
         this.elements.hideEmptyQueues.addEventListener('change', (e) => this.toggleEmptyQueues(e.target.checked));
         this.elements.autoRefreshToggle.addEventListener('change', (e) => this.toggleAutoRefresh(e.target.checked));
+        this.elements.purgeAllBtn.addEventListener('click', () => this.purgeAllQueues());
         
         // Error modal events
         this.elements.errorModalClose.addEventListener('click', () => this.hideErrorModal());
@@ -362,6 +364,36 @@ class SQSDashboard {
             }
         } catch (error) {
             this.showError('Delete Failed', error.message);
+        }
+    }
+
+    async purgeAllQueues() {
+        try {
+            this.showLoading();
+            const result = await window.electronAPI.purgeAllQueues();
+            
+            if (result.success) {
+                // Refresh the queues after successful purge
+                await this.loadQueues();
+                
+                // Show success message with details if there were any errors
+                if (result.errors && result.errors.length > 0) {
+                    const errorDetails = result.errors.join('\n');
+                    this.showError('Purge All Completed', `${result.message}\n\nErrors:\n${errorDetails}`);
+                }
+            } else {
+                if (result.message !== 'Purge cancelled') {
+                    let errorMessage = result.message;
+                    if (result.errors && result.errors.length > 0) {
+                        errorMessage += '\n\nErrors:\n' + result.errors.join('\n');
+                    }
+                    this.showError('Purge All Failed', errorMessage);
+                }
+            }
+        } catch (error) {
+            this.showError('Purge All Failed', error.message);
+        } finally {
+            this.hideLoading();
         }
     }
 
